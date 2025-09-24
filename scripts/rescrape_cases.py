@@ -47,7 +47,8 @@ from scraper.session import build_http_session
 # Config (env with sensible defaults)
 # -----------------------------
 DATABASE_URL = os.environ.get("DATABASE_URL")
-BATCH_TABLE = os.environ.get("DOCUMENTS_TABLE", "documents")
+BATCH_TABLE = os.environ.get("DOCUMENTS_TABLE", "dev.documents")
+CASES_TABLE = os.environ.get("CASES_TABLE", "dev.cases")
 BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "200"))
 DELAY_MS = int(os.environ.get("DELAY_MS", "200"))
 MAX_PAGES = int(os.environ.get("MAX_PAGES", "100000"))
@@ -243,7 +244,7 @@ def ensure_cursor_table(conn):
 
 def db_counts(conn) -> Tuple[int, int]:
     with conn.cursor() as cur:
-        cur.execute("SELECT COUNT(*) FROM cases")
+        cur.execute(f"SELECT COUNT(*) FROM {CASES_TABLE}")
         cases = int(cur.fetchone()[0])
         cur.execute(f"SELECT COUNT(*) FROM {BATCH_TABLE}")
         documents = int(cur.fetchone()[0])
@@ -253,8 +254,8 @@ def db_counts(conn) -> Tuple[int, int]:
 def upsert_case_meta(conn, slug: str, html_url: str, meta: Dict) -> Tuple[int, bool]:
     with conn.cursor() as cur:
         cur.execute(
-            """
-            INSERT INTO cases (govuk_slug, html_url, title, category, subcategory, published_at, decision_date)
+            f"""
+            INSERT INTO {CASES_TABLE} (govuk_slug, html_url, title, category, subcategory, published_at, decision_date)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (govuk_slug)
             DO UPDATE SET
@@ -283,7 +284,7 @@ def upsert_case_meta(conn, slug: str, html_url: str, meta: Dict) -> Tuple[int, b
 
 def document_exists_for_case(conn, case_id: int, pdf_url: str) -> bool:
     with conn.cursor() as cur:
-        cur.execute("SELECT 1 FROM documents WHERE case_id=%s AND pdf_url=%s LIMIT 1", (case_id, pdf_url))
+        cur.execute(f"SELECT 1 FROM {BATCH_TABLE} WHERE case_id=%s AND pdf_url=%s LIMIT 1", (case_id, pdf_url))
         return cur.fetchone() is not None
 
 
@@ -341,6 +342,7 @@ def rescrape_and_classify():
     print(f"  - Delay between pages: {DELAY_MS}ms")
     print(f"  - Max pages: {MAX_PAGES}\n")
     print(f"  - Documents table: {BATCH_TABLE}")
+    print(f"  - Cases table: {CASES_TABLE}")
 
     total_created_cases = 0
     total_updated_cases = 0
@@ -367,7 +369,7 @@ def rescrape_and_classify():
         print(f"Resuming from offset: {start_offset}\n")
 
         with conn.cursor() as cur:
-            cur.execute("SELECT COUNT(*) FROM cases")
+            cur.execute(f"SELECT COUNT(*) FROM {CASES_TABLE}")
             total_cases = int(cur.fetchone()[0])
 
         while page_index < MAX_PAGES:
@@ -383,9 +385,9 @@ def rescrape_and_classify():
 
             with conn.cursor() as cur:
                 cur.execute(
-                    """
+                    f"""
                     SELECT id, govuk_slug, html_url
-                    FROM cases
+                    FROM {CASES_TABLE}
                     ORDER BY id
                     LIMIT %s OFFSET %s
                     """,

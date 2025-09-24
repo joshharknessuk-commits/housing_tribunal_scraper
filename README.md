@@ -79,6 +79,8 @@ Environment variables:
 - `DATABASE_URL` *(required)* – Postgres connection string (e.g. Neon).
 - `BATCH_SIZE` *(default 200)* – number of cases fetched per batch.
 - `DELAY_MS` *(default 200)* – delay between batches in milliseconds.
+- `DOCUMENTS_TABLE` *(default `dev.documents`)* – target documents table.
+- `CASES_TABLE` *(default `dev.cases`)* – source/target cases table.
 - `STORE_PDF_BYTES` *(default 1)* – disable to skip downloading binary content.
 - `ENABLE_BLOB_UPLOAD` – set to `1` if you extend `upload_to_blob` with cloud storage.
 
