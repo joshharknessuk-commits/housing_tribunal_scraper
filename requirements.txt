@@ -4,3 +4,4 @@ python-dateutil
 tenacity
 python-dotenv
 sqlalchemy
+psycopg[binary]

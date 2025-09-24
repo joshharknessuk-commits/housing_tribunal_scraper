@@ -27,8 +27,8 @@ processing with the [Postgres URL PDF Text Extractor](../Pdf_Processing).
 
 3. **Run the scraper**
    ```bash
-   python -m scraper.cli --pages 3
-   ```
+python -m scraper.cli --pages 3
+```
    Flags:
    - `--no-download`: metadata only (skip PDF download)
    - `--persist`: insert metadata into Postgres via `NEON_URL`
@@ -65,3 +65,23 @@ pytest
 - The parser is heuristic: adjust CSS selectors or regex in `parser.py` if your
   tribunal listings use different markup.
 - When persisting to Postgres, rows with the same `pdf_url` are ignored on conflict.
+
+## Re-scrape existing cases
+If you already have rows in a `cases` table and want to backfill or classify
+missing PDFs, use the re-scrape worker:
+
+```bash
+python scripts/rescrape_cases.py
+```
+
+Environment variables:
+
+- `DATABASE_URL` *(required)* – Postgres connection string (e.g. Neon).
+- `BATCH_SIZE` *(default 200)* – number of cases fetched per batch.
+- `DELAY_MS` *(default 200)* – delay between batches in milliseconds.
+- `STORE_PDF_BYTES` *(default 1)* – disable to skip downloading binary content.
+- `ENABLE_BLOB_UPLOAD` – set to `1` if you extend `upload_to_blob` with cloud storage.
+
+The script maintains progress in a `cursors` table (row name defaults to
+`rescrape_progress`) and mirrors the console output style of the original
+TypeScript ingestion job.
